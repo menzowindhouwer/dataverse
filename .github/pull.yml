@@ -11,5 +11,11 @@ rules:
     upstream: IQSS:develop
     mergeMethod: hardreset
     mergeUnstable: false
+  - base: develop+ct
+    upstream: IQSS:develop
+    mergeMethod: merge
+    mergeUnstable: false
+    conflictReviewers:
+      - poikilotherm
 label: ":arrow_heading_down: pull"  # Optional
 conflictLabel: "merge-conflict"     # Optional, on merge conflict assign a custom label, Default: merge-conflict
