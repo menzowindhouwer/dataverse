@@ -894,10 +894,14 @@
             <id>ct</id>
             <properties>
                 <skipUnitTests>true</skipUnitTests>
-                <app.build.skip>false</app.build.skip>
-                <solr.build.skip>false</solr.build.skip>
-                <app.image.name>gdcc/dataverse-k8s:${project.version}</app.image.name>
-                <solr.image.name>gdcc/solr-k8s:${project.version}</solr.image.name>
+                <ct.build.app.skip>false</ct.build.app.skip>
+                <ct.build.app.name>gdcc/dataverse-k8s:${project.version}</ct.build.app.name>
+                <ct.build.solr.skip>false</ct.build.solr.skip>
+                <ct.build.solr.name>gdcc/solr-k8s:${project.version}</ct.build.solr.name>
+                <ct.run.jdwp>1</ct.run.jdwp>
+                <ct.run.jrebel>0</ct.run.jrebel>
+                <ct.run.db.user>dataverse</ct.run.db.user>
+                <ct.run.db.pass>changeme</ct.run.db.pass>
             </properties>
             <build>
                 <plugins>
@@ -910,9 +914,9 @@
                                 <!-- Dataverse K8s image -->
                                 <image>
                                     <alias>dataverse</alias>
-                                    <name>${app.image.name}</name>
+                                    <name>${ct.build.app.name}</name>
                                     <build>
-                                        <skip>${app.build.skip}</skip>
+                                        <skip>${ct.build.app.skip}</skip>
                                         <dockerFile>${project.basedir}/conf/container/Dockerfile</dockerFile>
                                         <filter>@</filter>
                                         <assembly>
@@ -923,12 +927,20 @@
                                     </build>
                                     <run>
                                         <env>
-                                            <DATAVERSE_DB_USER>dataverse</DATAVERSE_DB_USER>
-                                            <DATAVERSE_DB_PASSWORD>changeme</DATAVERSE_DB_PASSWORD>
+                                            <DATAVERSE_DB_USER>${ct.run.db.user}</DATAVERSE_DB_USER>
+                                            <DATAVERSE_DB_PASSWORD>${ct.run.db.pass}</DATAVERSE_DB_PASSWORD>
+                                            <ENABLE_JDWP>${ct.run.jdwp}</ENABLE_JDWP>
+                                            <ENABLE_JREBEL>${ct.run.jrebel}</ENABLE_JREBEL>
                                         </env>
+                                        <envPropertyFile>${project.basedir}/conf/container/docker-run/env</envPropertyFile>
                                         <hostname>dataverse</hostname>
                                         <ports>
+                                            <!-- Usual HTTP access -->
                                             <port>8080:8080</port>
+                                            <!-- JDWP for remote debugging -->
+                                            <port>9009:9009</port>
+                                            <!-- JMX remote monitoring -->
+                                            <port>8686:8686</port>
                                         </ports>
                                         <network>
                                             <mode>custom</mode>
@@ -938,14 +950,31 @@
                                             <container>solr</container>
                                             <container>postgresql</container>
                                         </dependsOn>
+                                        <volumes>
+                                            <bind>
+                                                <volume>${project.basedir}/conf/container/docker-run/secrets:/secrets</volume>
+                                            </bind>
+                                        </volumes>
+                                        <wait>
+                                            <http>
+                                                <url>http://localhost:8080/robots.txt</url>
+                                                <method>GET</method>
+                                                <status>200..399</status>
+                                            </http>
+                                            <log>dataverse was successfully deployed</log>
+                                            <time>180000</time>
+                                            <exec>
+                                                <postStart>/opt/payara/scripts/bootstrap-job.sh</postStart>
+                                            </exec>
+                                        </wait>
                                     </run>
                                 </image>
                                 <!-- Solr K8s image -->
                                 <image>
                                     <alias>solr</alias>
-                                    <name>${solr.image.name}</name>
+                                    <name>${ct.build.solr.name}</name>
                                     <build>
-                                        <skip>${solr.build.skip}</skip>
+                                        <skip>${ct.build.solr.skip}</skip>
                                         <dockerFile>${project.basedir}/conf/solr/Dockerfile</dockerFile>
                                         <filter>@</filter>
                                         <assembly>
@@ -962,7 +991,7 @@
                                         </network>
                                     </run>
                                 </image>
-                                <!-- Postgresql Image (no build, run only -->
+                                <!-- Postgresql Image (no build, run only) -->
                                 <image>
                                     <alias>postgresql</alias>
                                     <name>postgres:${postgresql.server.version}</name>
@@ -973,9 +1002,30 @@
                                             <name>dataverse</name>
                                         </network>
                                         <env>
-                                            <POSTGRES_USER>dataverse</POSTGRES_USER>
-                                            <POSTGRES_PASSWORD>changeme</POSTGRES_PASSWORD>
+                                            <POSTGRES_USER>${ct.run.db.user}</POSTGRES_USER>
+                                            <POSTGRES_PASSWORD>${ct.run.db.pass}</POSTGRES_PASSWORD>
                                         </env>
+                                    </run>
+                                </image>
+                                <!-- MailHog Fake SMTP Server (no build, run only) -->
+                                <image>
+                                    <alias>mailhog</alias>
+                                    <name>mailhog/mailhog:v1.0.1</name>
+                                    <run>
+                                        <hostname>postfix</hostname>
+                                        <env>
+                                            <MH_HOSTNAME>postfix</MH_HOSTNAME>
+                                            <MH_STORAGE>memory</MH_STORAGE>
+                                            <MH_SMTP_BIND_ADDR>0.0.0.0:25</MH_SMTP_BIND_ADDR>
+                                        </env>
+                                        <ports>
+                                            <!-- Web UI & REST API for retrieved mails -->
+                                            <port>8025:8025</port>
+                                        </ports>
+                                        <network>
+                                            <mode>custom</mode>
+                                            <name>dataverse</name>
+                                        </network>
                                     </run>
                                 </image>
                             </images>
