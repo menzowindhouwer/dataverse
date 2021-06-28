@@ -19,7 +19,19 @@
 #  - Their image is less optimised for production usage by design choices
 #
 FROM openjdk:11-jre
-LABEL maintainer="FDM FZJ <forschungsdaten@fz-juelich.de>"
+
+LABEL org.opencontainers.image.created="@git.build.time@" \
+      org.opencontainers.image.authors="Research Data Management at FZJ <forschungsdaten@fz-juelich.de>" \
+      org.opencontainers.image.url="https://k8s-docs.gdcc.io" \
+      org.opencontainers.image.documentation="https://k8s-docs.gdcc.io" \
+      org.opencontainers.image.source="https://github.com/gdcc/dataverse/tree/develop%2Bct/conf/container" \
+      org.opencontainers.image.version="@project.version@" \
+      org.opencontainers.image.revision="@git.commit.id.abbrev@" \
+      org.opencontainers.image.vendor="Global Dataverse Community Consortium" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.title="dataverse-k8s :: Dataverse containerized" \
+      org.opencontainers.image.description="This container image provides the research data repository software Dataverse in a box."
+
 # Default payara ports to expose
 # 4848: admin console
 # 9009: debug port (JPDA)
@@ -166,7 +178,10 @@ RUN true && \
     ${ASADMIN} create-system-properties jersey.config.client.connectTimeout="300000" && \
 
     ### DATAVERSE APPLICATION SPECIFICS
+    # Configure the MicroProfile directory config source to point to /secrets
     ${ASADMIN} set-config-dir --directory=${SECRETS_DIR} && \
+    # Make request timeouts configurable via MPCONFIG (default to 900 secs = 15 min)
+    ${ASADMIN} set 'server-config.network-config.protocols.protocol.http-listener-1.http.request-timeout-seconds=${MPCONFIG=dataverse.http.timeout:900}' && \
     # TODO: what of the below 3 items can be deleted for container usage?
     ${ASADMIN} create-network-listener --protocol=http-listener-1 --listenerport=8009 --jkenabled=true jk-connector && \
     ${ASADMIN} set server-config.network-config.protocols.protocol.http-listener-1.http.comet-support-enabled=true && \
