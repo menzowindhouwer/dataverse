@@ -23,9 +23,10 @@ Feature Branches
    Tagged container image releases will be built from this branch.
    
    To create/update the branch do the cherry picking:
-   1. Switch to clean `master+ct` branch, based on latest upstream `master` (or from another tag release)
-   2. Use `git log master+ct...develop+ct ^develop --no-merges --oneline --cherry-mark --reverse`. Revisit all changes to suffice
-   3. Do the picking: `git log master+ct...develop+ct ^develop --no-merges --oneline --cherry-pick --reverse --format=%h | xargs git cherry-pick`
+   
+   1. Switch to clean ``master+ct`` branch, based on latest upstream ``master`` (or from another tag release)
+   2. Use ``git log master+ct...develop+ct ^develop --no-merges --oneline --cherry-mark --reverse``. Revisit all changes to suffice
+   3. Do the picking: ``git log master+ct...develop+ct ^develop --no-merges --oneline --cherry-pick --reverse --format=%h | xargs git cherry-pick``
    4. Force push (as we rewrote history)
    
    (Maybe we can find a workaround for the forced pushes?)
