@@ -61,11 +61,10 @@ ENV PATH="${PATH}:${PAYARA_DIR}/bin" \
     JREBEL_LIB="${HOME_DIR}/jrebel/lib/libjrebel64.so" \
     DATAVERSE_VERSION="@project.version@"
 
-ARG PAYARA_VERSION="@payara.version@"
 ARG ESH_VERSION=0.3.1
 ARG ESH_CHECKSUM="1e0bd783f930cba13d6708b11c1ac844bbb1eddd02ac1666fc10d47eb9517bd7"
-ARG JATTACH_VERSION="v1.5"
-ARG JATTACH_CHECKSUM="adab16e1081aa4fafc91f3f2e44262338a498d8f853d3c6801050889e6389548"
+ARG JATTACH_VERSION="v2.0"
+ARG JATTACH_CHECKSUM="989dc53279c7fb3ec399dbff1692647439286e5a4339c2849fd4323e998af7f8"
 ARG PKGS="jq imagemagick curl unzip wget acl dirmngr gpg lsof procps netcat tini"
 ARG ASADMIN="${PAYARA_DIR}/bin/asadmin --user=${ADMIN_USER} --passwordfile=${PASSWORD_FILE}"
 
@@ -113,13 +112,8 @@ RUN true && \
 USER payara
 WORKDIR ${HOME_DIR}
 
-# Download, check and install Payara
-RUN curl -sSfL -o payara.zip "https://repo1.maven.org/maven2/fish/payara/distributions/payara/${PAYARA_VERSION}/payara-${PAYARA_VERSION}.zip" && \
-    curl -sSfL -o payara.zip.sha256 "https://repo1.maven.org/maven2/fish/payara/distributions/payara/${PAYARA_VERSION}/payara-${PAYARA_VERSION}.zip.sha256" && \
-    echo "$(cat payara.zip.sha256) payara.zip" | sha256sum -c - && \
-    unzip -q payara.zip -d ${HOME_DIR} && \
-    mv ${HOME_DIR}/payara5/* ${PAYARA_DIR}/ && \
-    rm -rf ${HOME_DIR}/payara5 payara.zip*
+# Copy Payara from build context (cached by Maven)
+COPY --chown=payara:payara maven/appserver ${PAYARA_DIR}/
 
 # Copy the system (appserver level) scripts like entrypoint, etc
 COPY --chown=payara:payara maven/scripts/system ${SCRIPT_DIR}/
