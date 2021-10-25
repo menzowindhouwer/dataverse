@@ -18,7 +18,10 @@
 #  - Using same base image as Solr (https://hub.docker.com/_/solr) is reducing pulls
 #  - Their image is less optimised for production usage by design choices
 #
-FROM openjdk:11-jre
+
+# Make the Java base image and version configurable (useful for trying newer Java versions and flavors)
+ARG BASE_IMAGE="openjdk:11-jre"
+FROM $BASE_IMAGE
 
 # Default payara ports to expose
 # 4848: admin console

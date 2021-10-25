@@ -4,12 +4,17 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-FROM solr:@solr.version@
+# Retrieve target solr version from build arg
+ARG SOLR_VERSION
+
+FROM solr:$SOLR_VERSION
+# Repeat because of scope (https://docs.docker.com/engine/reference/builder/#scope)
+ARG SOLR_VERSION
 
 ENV SOLR_OPTS="-Dsolr.jetty.request.header.size=102400" \
     COLLECTION="collection1" \
     CONFIGSET="dataverse" \
-    CONFIGSETS_DIR=/opt/solr-@solr.version@/server/solr/configsets
+    CONFIGSETS_DIR="/opt/solr-${SOLR_VERSION}/server/solr/configsets"
 
 USER root
 # Create the Dataverse configset for Solr
