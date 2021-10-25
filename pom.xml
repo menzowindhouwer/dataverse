@@ -1052,6 +1052,13 @@
                                     <build>
                                         <skip>${ct.build.app.skip}</skip>
                                         <dockerFile>${project.basedir}/conf/container/Dockerfile</dockerFile>
+                                        <args>
+                                            <!--
+                                                This can be made configurable by replacing with variables.
+                                                We could use different Java versions and/or distributions that way.
+                                            -->
+                                            <BASE_IMAGE>openjdk:11-jre</BASE_IMAGE>
+                                        </args>
                                         <filter>@</filter>
                                         <assembly>
                                             <mode>tar</mode>
@@ -1112,6 +1119,9 @@
                                     <build>
                                         <skip>${ct.build.solr.skip}</skip>
                                         <dockerFile>${project.basedir}/conf/solr/Dockerfile</dockerFile>
+                                        <args>
+                                            <SOLR_VERSION>${solr.version}</SOLR_VERSION>
+                                        </args>
                                         <filter>@</filter>
                                         <assembly>
                                             <mode>tar</mode>
