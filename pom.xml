@@ -1036,6 +1036,8 @@
                             </execution>
                         </executions>
                     </plugin>
+                    
+                    <!-- Build images via Docker Maven Plugin and provide option to run -->
                     <plugin>
                         <groupId>io.fabric8</groupId>
                         <artifactId>docker-maven-plugin</artifactId>
@@ -1077,7 +1079,7 @@
                                         <env>
                                             <DATAVERSE_DB_USER>${ct.run.db.user}</DATAVERSE_DB_USER>
                                             <DATAVERSE_DB_PASSWORD>${ct.run.db.pass}</DATAVERSE_DB_PASSWORD>
-                                            <ENABLE_INTEGRATION_TESTS>${ct.run.it}}</ENABLE_INTEGRATION_TESTS>
+                                            <ENABLE_INTEGRATION_TESTS>${ct.run.it}</ENABLE_INTEGRATION_TESTS>
                                             <ENABLE_JDWP>${ct.run.jdwp}</ENABLE_JDWP>
                                             <ENABLE_JREBEL>${ct.run.jrebel}</ENABLE_JREBEL>
                                         </env>
