@@ -981,6 +981,13 @@
                 <ct.run.it>0</ct.run.it>
                 <ct.run.db.user>dataverse</ct.run.db.user>
                 <ct.run.db.pass>changeme</ct.run.db.pass>
+                <!--
+                    Note: Temporary workaround due to problems with Payara 5.2021.5
+                    Note: Remove when upstream is at 5.2021.8+
+                    See also: https://github.com/IQSS/dataverse/issues/8048
+                    See also: https://github.com/payara/Payara/issues/5368
+                -->
+                <payara.version>5.2021.8</payara.version>
             </properties>
             <build>
                 <plugins>
