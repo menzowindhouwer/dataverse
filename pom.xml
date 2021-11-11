@@ -42,7 +42,7 @@
         <junit.jupiter.version>5.7.0</junit.jupiter.version>
         <junit.vintage.version>${junit.jupiter.version}</junit.vintage.version>
         <testcontainers.version>1.16.2</testcontainers.version>
-        <microbean-mpconfig.version>0.4.1</microbean-mpconfig.version>
+        <microbean-mpconfig.version>0.4.2</microbean-mpconfig.version>
         <mockito.version>2.28.2</mockito.version>
         <flyway.version>5.2.4</flyway.version>
         <jhove.version>1.20.1</jhove.version>
@@ -938,40 +938,11 @@
         <profile>
             <id>all-unit-tests</id>
         </profile>
-        <!-- TODO: Add a profile to run API tests (integration tests that end in IT.java. See conf/docker-aio/run-test-suite.sh -->
-        <profile>
-            <id>tc</id>
-            <properties>
-                <skipUnitTests>true</skipUnitTests>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>2.22.2</version>
-                        <configuration>
-                            <groups>testcontainers</groups>
-                            <systemPropertyVariables>
-                                <postgresql.server.version>${postgresql.server.version}</postgresql.server.version>
-                            </systemPropertyVariables>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>ct</id>
             <properties>
                 <skipUnitTests>true</skipUnitTests>
+                
                 <ct.build.registry>ghcr.io</ct.build.registry>
                 <ct.build.tag>${project.version}</ct.build.tag>
                 <ct.build.app.skip>false</ct.build.app.skip>
@@ -980,11 +951,21 @@
                 <ct.build.solr.skip>false</ct.build.solr.skip>
                 <ct.build.solr.tag>${ct.build.tag}</ct.build.solr.tag>
                 <ct.build.solr.name>gdcc/solr-k8s:${ct.build.solr.tag}</ct.build.solr.name>
+                
                 <ct.run.jdwp>1</ct.run.jdwp>
                 <ct.run.jrebel>0</ct.run.jrebel>
                 <ct.run.it>0</ct.run.it>
+                <ct.run.wait>90000</ct.run.wait>
                 <ct.run.db.user>dataverse</ct.run.db.user>
                 <ct.run.db.pass>changeme</ct.run.db.pass>
+                
+                <ct.run.dir>${project.basedir}/conf/container/docker-run</ct.run.dir>
+                <ct.run.envfile>${ct.run.dir}/env</ct.run.envfile>
+                <ct.run.dir.data>${ct.run.dir}/data</ct.run.dir.data>
+                <ct.run.dir.secrets>${ct.run.dir}/secrets</ct.run.dir.secrets>
+                <ct.run.mount.data>/data</ct.run.mount.data>
+                <ct.run.mount.secrets>/secrets</ct.run.mount.secrets>
+                
                 <!--
                     Note: Temporary workaround due to problems with Payara 5.2021.5
                     Note: Remove when upstream is at 5.2021.8+
@@ -1088,7 +1069,7 @@
                                             <ENABLE_JDWP>${ct.run.jdwp}</ENABLE_JDWP>
                                             <ENABLE_JREBEL>${ct.run.jrebel}</ENABLE_JREBEL>
                                         </env>
-                                        <envPropertyFile>${project.basedir}/conf/container/docker-run/env</envPropertyFile>
+                                        <envPropertyFile>${ct.run.envfile}</envPropertyFile>
                                         <hostname>dataverse</hostname>
                                         <ports>
                                             <!-- Usual HTTP access -->
@@ -1108,7 +1089,8 @@
                                         </dependsOn>
                                         <volumes>
                                             <bind>
-                                                <volume>${project.basedir}/conf/container/docker-run/secrets:/secrets</volume>
+                                                <volume>${ct.run.dir.secrets}:${ct.run.mount.secrets}</volume>
+                                                <!-- TODO: add tmpfs or volume mount for data directory to avoid storing in overlayfs -->
                                             </bind>
                                         </volumes>
                                         <wait>
@@ -1118,7 +1100,7 @@
                                                 <status>200..399</status>
                                             </http>
                                             <log>dataverse was successfully deployed</log>
-                                            <time>180000</time>
+                                            <time>${ct.run.wait}</time>
                                             <exec>
                                                 <postStart>/opt/payara/scripts/bootstrap-job.sh</postStart>
                                             </exec>
@@ -1149,6 +1131,7 @@
                                             <mode>custom</mode>
                                             <name>dataverse</name>
                                         </network>
+                                        <!-- TODO: add tmpfs or volume mount for data directory to avoid storing in overlayfs -->
                                     </run>
                                 </image>
                                 <!-- Postgresql Image (no build, run only) -->
@@ -1165,6 +1148,7 @@
                                             <POSTGRES_USER>${ct.run.db.user}</POSTGRES_USER>
                                             <POSTGRES_PASSWORD>${ct.run.db.pass}</POSTGRES_PASSWORD>
                                         </env>
+                                        <!-- TODO: add tmpfs or volume mount for data directory to avoid storing in overlayfs -->
                                     </run>
                                 </image>
                                 <!-- MailHog Fake SMTP Server (no build, run only) -->
@@ -1186,11 +1170,42 @@
                                             <mode>custom</mode>
                                             <name>dataverse</name>
                                         </network>
+                                        <!-- TODO: add tmpfs or volume mount for data directory to avoid storing in overlayfs -->
                                     </run>
                                 </image>
                             </images>
                             <autoCreateCustomNetworks>true</autoCreateCustomNetworks>
                         </configuration>
+                    </plugin>
+                    
+                    <!-- Maven Failsafe based integration tests using Testcontainers -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.0.0-M5</version>
+                        <configuration>
+                            <groups>standard-api-test-set</groups>
+                            <systemPropertyVariables>
+                                <tc.enabled>true</tc.enabled>
+                                <postgresql.server.version>${postgresql.server.version}</postgresql.server.version>
+                                <solr.image>${ct.build.solr.name}</solr.image>
+                                <app.image>${ct.build.app.name}</app.image>
+                                <app.wait>${ct.run.wait}</app.wait>
+                                <app.envfile>${ct.run.envfile}</app.envfile>
+                                <app.dir.secrets>${ct.run.dir.secrets}</app.dir.secrets>
+                                <app.dir.data>${ct.run.dir.data}</app.dir.data>
+                                <app.mount.secrets>${ct.run.mount.secrets}</app.mount.secrets>
+                                <app.mount.data>${ct.run.mount.data}</app.mount.data>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
