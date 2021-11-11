@@ -48,24 +48,36 @@ ADMIN_API_TOKEN=$(grep "apiToken" "${SETUP_LOG}" | jq -r .data.apiToken)
 rm "${SETUP_LOG}"
 
 # 4.) Configure Solr location
-curl -sS -X PUT -d "${SOLR_K8S_HOST}:8983" "${DATAVERSE_URL}/api/admin/settings/:SolrHostColonPort"
+curl -sS -w '\n' -X PUT -d "${SOLR_K8S_HOST}:8983" "${DATAVERSE_URL}/api/admin/settings/:SolrHostColonPort"
 
 # 5.) Provision builtin users key to enable creation of more builtin users
 #     Hint: if we want to enable IT tests, let's stick the default from setup-all.sh (burrito).
 #     Otherwise: no secret present means disable builtin users by deleting the key.
 if [ "${ENABLE_INTEGRATION_TESTS}" = "0" ]; then
   if [ -s "${SECRETS_DIR}/api/userskey" ]; then
-    curl -sS -X PUT -d "$(cat "${SECRETS_DIR}"/api/userskey)" "${DATAVERSE_URL}/api/admin/settings/BuiltinUsers.KEY"
+    curl -sS -w '\n' -X PUT -d "$(cat "${SECRETS_DIR}"/api/userskey)" "${DATAVERSE_URL}/api/admin/settings/BuiltinUsers.KEY"
   else
-    curl -sS -X DELETE "${DATAVERSE_URL}/api/admin/settings/BuiltinUsers.KEY"
+    curl -sS -w '\n' -X DELETE "${DATAVERSE_URL}/api/admin/settings/BuiltinUsers.KEY"
   fi
 fi
 
 # 6.) Block access to the API endpoints, but allow for request with key from secret
 if [ "${ENABLE_INTEGRATION_TESTS}" = "0" ]; then
-  curl -sS -X PUT -d "$(cat "${SECRETS_DIR}"/api/key)" "${DATAVERSE_URL}/api/admin/settings/:BlockedApiKey"
-  curl -sS -X PUT -d unblock-key "${DATAVERSE_URL}/api/admin/settings/:BlockedApiPolicy"
-  curl -sS -X PUT -d admin,test "${DATAVERSE_URL}/api/admin/settings/:BlockedApiEndpoints"
+  curl -sS -w '\n' -X PUT -d "$(cat "${SECRETS_DIR}"/api/key)" "${DATAVERSE_URL}/api/admin/settings/:BlockedApiKey"
+  curl -sS -w '\n' -X PUT -d unblock-key "${DATAVERSE_URL}/api/admin/settings/:BlockedApiPolicy"
+  curl -sS -w '\n' -X PUT -d admin,test "${DATAVERSE_URL}/api/admin/settings/:BlockedApiEndpoints"
+fi
+
+# 7.) Preparation steps for integration testing
+# NOTE: One day this might be better included in Java tests or even a self-bootstrapping instance
+if [ "${ENABLE_INTEGRATION_TESTS}" = "1" ] || [ "${ENABLE_INTEGRATION_TESTS}" = "true" ]; then
+  echo "Running in Integration Testing Mode"
+  # Enable fullContributor role on root dataverse collection for all authenticated users
+  echo "Enable authenticated users full contributore role on root Dataverse collection"
+  curl -sS -w '\n' -X POST -H "X-Dataverse-key:$ADMIN_API_TOKEN" -H "Content-type:application/json" -d "{\"assignee\": \":authenticated-users\",\"role\": \"fullContributor\"}" "${DATAVERSE_URL}/api/dataverses/root/assignments"
+  # Publish root dataverse collection
+  echo "Publishing root Dataverse collection"
+  curl -sS -w '\n' -X POST -H "X-Dataverse-key:$ADMIN_API_TOKEN" "${DATAVERSE_URL}/api/dataverses/root/actions/:publish"
 fi
 
 # Initial configuration of Dataverse
