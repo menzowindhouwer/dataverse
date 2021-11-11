@@ -40,7 +40,12 @@ sed -i -e "s#localhost:8080#${DATAVERSE_SERVICE_HOST}:${DATAVERSE_SERVICE_PORT_H
 sed -i -e "s#root@mailinator.com#${CONTACT_MAIL}#" data/dv-root.json
 sed -i -e "s#dataverse@mailinator.com#${CONTACT_MAIL}#" data/user-admin.json
 # 2c) Use script(s) to bootstrap the instance.
-./setup-all.sh --insecure -p="${ADMIN_PASSWORD:-admin}"
+# Hint: writing to stdout but redact apiToken from logs. Save to tempfile to extract token for later use
+SETUP_LOG=$(mktemp)
+./setup-all.sh --insecure -p="${ADMIN_PASSWORD:-admin}" | tee "${SETUP_LOG}" | sed -e 's#"apiToken":".*"#"apiToken":"****"#'
+# 2d) Extract dataverseAdmin API token and cleanup
+ADMIN_API_TOKEN=$(grep "apiToken" "${SETUP_LOG}" | jq -r .data.apiToken)
+rm "${SETUP_LOG}"
 
 # 4.) Configure Solr location
 curl -sS -X PUT -d "${SOLR_K8S_HOST}:8983" "${DATAVERSE_URL}/api/admin/settings/:SolrHostColonPort"
