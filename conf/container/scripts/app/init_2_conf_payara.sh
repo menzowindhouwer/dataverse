@@ -27,8 +27,9 @@ for alias in rserve doi
 do
   if [ -f "${SECRETS_DIR}"/$alias/password ]; then
     echo "INFO: Defining password alias for $alias"
-    sed -e "s#^#AS_ADMIN_ALIASPASSWORD=#" < "${SECRETS_DIR}"/$alias/password > "${SECRETS_DIR}"/${alias}_asadmin
-    echo "create-password-alias ${alias}_password_alias --passwordfile ${SECRETS_DIR}/${alias}_asadmin" >> "${DV_POSTBOOT}"
+    PASSTMP=$(mktemp)
+    sed -e "s#^#AS_ADMIN_ALIASPASSWORD=#" < "${SECRETS_DIR}"/$alias/password > "${PASSTMP}"
+    echo "create-password-alias ${alias}_password_alias --passwordfile ${PASSTMP}" >> "${DV_POSTBOOT}"
   else
     echo "WARNING: Could not find 'password' secret for ${alias} in ${SECRETS_DIR}. Check your Kubernetes Secrets and their mounting!"
   fi

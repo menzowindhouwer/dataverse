@@ -18,7 +18,10 @@
 #  - Using same base image as Solr (https://hub.docker.com/_/solr) is reducing pulls
 #  - Their image is less optimised for production usage by design choices
 #
-FROM openjdk:11-jre
+
+# Make the Java base image and version configurable (useful for trying newer Java versions and flavors)
+ARG BASE_IMAGE="openjdk:11-jre"
+FROM $BASE_IMAGE
 
 # Default payara ports to expose
 # 4848: admin console
@@ -74,15 +77,15 @@ WORKDIR /
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 RUN true && \
     # Create pathes
-    mkdir -p ${HOME_DIR} ${PAYARA_DIR} ${DEPLOY_DIR} ${CONFIG_DIR} ${SCRIPT_DIR} && \
-    mkdir -p ${DATA_DIR} ${METADATA_DIR} ${DOCROOT_DIR} ${SECRETS_DIR} ${DUMPS_DIR} && \
+    mkdir -p "${HOME_DIR}" "${PAYARA_DIR}" "${DEPLOY_DIR}" "${CONFIG_DIR}" "${SCRIPT_DIR}" && \
+    mkdir -p "${DATA_DIR}" "${METADATA_DIR}" "${DOCROOT_DIR}" "${SECRETS_DIR}" "${DUMPS_DIR}" && \
     # Create user
     addgroup --gid 1000 payara && \
     adduser --system --uid 1000 --no-create-home --shell /bin/bash --home "${HOME_DIR}" --gecos "" --ingroup payara payara && \
     echo payara:payara | chpasswd && \
     # Set permissions
-    chown -R payara: ${HOME_DIR} && \
-    chown -R payara: ${DATA_DIR} ${METADATA_DIR} ${DOCROOT_DIR} ${SECRETS_DIR} ${DUMPS_DIR}
+    chown -R payara: "${HOME_DIR}" && \
+    chown -R payara: "${DATA_DIR}" "${METADATA_DIR}" "${DOCROOT_DIR}" "${SECRETS_DIR}" "${DUMPS_DIR}"
 
 # Installing the packages in an extra container layer for better caching
 RUN true && \
@@ -91,21 +94,21 @@ RUN true && \
     apt-get install -qqy --no-install-recommends ${PKGS} && \
 
     # Download & check esh template script
-    curl -sSfL -o /usr/bin/esh https://raw.githubusercontent.com/jirutka/esh/v${ESH_VERSION}/esh && \
+    curl -sSfL -o /usr/bin/esh "https://raw.githubusercontent.com/jirutka/esh/v${ESH_VERSION}/esh" && \
     echo "${ESH_CHECKSUM} /usr/bin/esh" | sha256sum -c - && \
     chmod +x /usr/bin/esh && \
 
     # Install jattach
-    curl -sSfL -o /usr/bin/jattach https://github.com/apangin/jattach/releases/download/${JATTACH_VERSION}/jattach && \
+    curl -sSfL -o /usr/bin/jattach "https://github.com/apangin/jattach/releases/download/${JATTACH_VERSION}/jattach" && \
     echo "${JATTACH_CHECKSUM} /usr/bin/jattach" | sha256sum -c - && \
     chmod +x /usr/bin/jattach && \
 
     # Download & unzip JRebel to $JREBEL_LIB = ${HOME_DIR}/jrebel/lib/libjrebel64.so (for development use)
-    curl -sS -f -o ${HOME_DIR}/jrebel.zip http://dl.zeroturnaround.com/jrebel-stable-nosetup.zip && \
+    curl -sS -f -o "${HOME_DIR}/jrebel.zip" "http://dl.zeroturnaround.com/jrebel-stable-nosetup.zip" && \
     unzip -q "${HOME_DIR}/jrebel.zip" -d "${HOME_DIR}" && \
 
     # Cleanup
-    rm -rf /var/lib/apt/lists/* "${HOME_DIR}/jrebel.zip"
+    rm -rf "/var/lib/apt/lists/*" "${HOME_DIR}/jrebel.zip"
 
 ### PART 2: PAYARA ###
 # After setting up system, now configure Payara
@@ -118,7 +121,6 @@ COPY --chown=payara:payara maven/appserver ${PAYARA_DIR}/
 # Copy the system (appserver level) scripts like entrypoint, etc
 COPY --chown=payara:payara maven/scripts/system ${SCRIPT_DIR}/
 
-# TODO: refactor and make production ready
 # Configure the domain to be container and production ready
 RUN true && \
     # Set admin password
@@ -162,7 +164,7 @@ RUN true && \
 
     ### DATAVERSE APPLICATION SPECIFICS
     # Configure the MicroProfile directory config source to point to /secrets
-    ${ASADMIN} set-config-dir --directory=${SECRETS_DIR} && \
+    ${ASADMIN} set-config-dir --directory="${SECRETS_DIR}" && \
     # Make request timeouts configurable via MPCONFIG (default to 900 secs = 15 min)
     ${ASADMIN} set 'server-config.network-config.protocols.protocol.http-listener-1.http.request-timeout-seconds=${MPCONFIG=dataverse.http.timeout:900}' && \
     # TODO: what of the below 3 items can be deleted for container usage?
@@ -174,19 +176,19 @@ RUN true && \
 
     ### CLEANUP
     # Stop domain
-    ${ASADMIN} stop-domain ${DOMAIN_NAME} && \
+    ${ASADMIN} stop-domain "${DOMAIN_NAME}" && \
     # Delete generated files
     rm -rf \
-        /tmp/password-change-file.txt \
-        ${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/osgi-cache \
-        ${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/logs
+        "/tmp/password-change-file.txt" \
+        "${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/osgi-cache" \
+        "${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/logs"
 
 # Make docroot of Payara reside in higher level directory for easier targeting
 # Due to gdcc/dataverse-kubernetes#177: create the generated pathes so they are
 # writeable by us. TBR with gdcc/dataverse-kubernetes#178.
-RUN rm -rf ${DOMAIN_DIR}/docroot && \
-    ln -s ${DOCROOT_DIR} ${DOMAIN_DIR}/docroot && \
-    mkdir -p ${DOMAIN_DIR}/generated/jsp/dataverse
+RUN rm -rf "${DOMAIN_DIR}"/docroot && \
+    ln -s "${DOCROOT_DIR}" "${DOMAIN_DIR}"/docroot && \
+    mkdir -p "${DOMAIN_DIR}"/generated/jsp/dataverse
 
 ### PART 3: DATAVERSE INSTALLATION ###
 # Copy app and deps from assembly in proper layers
@@ -198,13 +200,13 @@ COPY --chown=payara:payara maven/supplements ${DEPLOY_DIR}/dataverse/supplements
 COPY --chown=payara:payara maven/maven-archiver ${DEPLOY_DIR}/maven-archiver/
 
 # Create symlinks for jHove
-RUN ln -s ${DEPLOY_DIR}/dataverse/supplements/jhove.conf ${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhove.conf && \
-    ln -s ${DEPLOY_DIR}/dataverse/supplements/jhoveConfig.xsd ${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhoveConfig.xsd && \
-    sed -i ${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhove.conf -e "s:/usr/local/payara5/glassfish/domains/domain1:${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}:g"
+RUN ln -s "${DEPLOY_DIR}/dataverse/supplements/jhove.conf" "${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhove.conf" && \
+    ln -s "${DEPLOY_DIR}/dataverse/supplements/jhoveConfig.xsd" "${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhoveConfig.xsd" && \
+    sed -i "${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}/config/jhove.conf" -e "s:/usr/local/payara5/glassfish/domains/domain1:${PAYARA_DIR}/glassfish/domains/${DOMAIN_NAME}:g"
 
 # Copy init and application scripts
 COPY --chown=payara:payara maven/scripts/app ${SCRIPT_DIR}/
-RUN chmod +x ${SCRIPT_DIR}/*
+RUN chmod +x "${SCRIPT_DIR}"/*
 
 # Set the entrypoint to tini (as a process supervisor)
 ENTRYPOINT ["/usr/bin/tini", "--"]
