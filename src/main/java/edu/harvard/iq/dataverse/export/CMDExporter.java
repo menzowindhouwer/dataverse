@@ -13,7 +13,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.transform.Source;
 
 import nl.mpi.tla.util.Saxon;
-import net.sf.saxon.s9api.XdmValue;
+import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XsltTransformer;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.XdmDestination;
@@ -43,7 +43,7 @@ public class CMDExporter implements Exporter {
 
     @Override
     public void exportDataset(DatasetVersion version, JsonObject json, OutputStream outputStream) throws ExportException {
-        XdmValue jsonXML = null;
+        XdmNode jsonXML = null;
         try {
             jsonXML = Saxon.parseJson(json.toString());
         } catch (SaxonApiException e) {
@@ -52,7 +52,7 @@ public class CMDExporter implements Exporter {
         try {
             XsltTransformer toCMD = Saxon.buildTransformer(this.getClass().getResource("/CMD/json2cmdi.xsl")).load();
 
-            toCMD.setSource(jsonXML);
+            toCMD.setSource(jsonXML.asSource());
 
             XMLStreamWriter xmlw = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream);
             toCMD.setDestination(new XMLStreamWriterDestination(xmlw));

@@ -26,7 +26,7 @@ chmod 0755 maven/maven.sh
 # not using dvinstall.zip for setupIT.bash; but still used in install.bash for normal ops
 source maven/maven.sh && mvn clean
 ./scripts/installer/custom-build-number
-source maven/maven.sh && mvn package
+source maven/maven.sh && mvn -DskipTests=true  package
 cd scripts/installer
 make clean
 make
