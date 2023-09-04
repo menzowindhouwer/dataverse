@@ -2,6 +2,7 @@ package edu.harvard.iq.dataverse.export;
 
 import com.google.auto.service.AutoService;
 import edu.harvard.iq.dataverse.DatasetVersion;
+import edu.harvard.iq.dataverse.DataverseRoleServiceBean;
 import edu.harvard.iq.dataverse.export.ddi.DdiExportUtil;
 import edu.harvard.iq.dataverse.export.spi.Exporter;
 import edu.harvard.iq.dataverse.util.BundleUtil;
@@ -11,6 +12,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.transform.Source;
+import java.util.logging.Logger;
 
 import nl.mpi.tla.util.Saxon;
 import net.sf.saxon.s9api.XdmNode;
@@ -30,6 +32,9 @@ public class CMDExporter implements Exporter {
     public static String DEFAULT_XML_SCHEMALOCATION = "https://infra.clarin.eu/CMDI/1.x/xsd/cmd-envelop.xsd";
     public static String DEFAULT_XML_VERSION = "1.2";
     public static final String PROVIDER_NAME = "CMDI";
+
+    private static final Logger logger = Logger.getLogger(CMDExporter.class.getCanonicalName());
+
     
     @Override
     public String getProviderName() {
@@ -50,6 +55,9 @@ public class CMDExporter implements Exporter {
             throw new ExportException("JSON to XML failed!", e);
         }
         try {
+            logger.info("MENZO was here!");
+            logger.warning("MENZO was here!");
+            logger.severe("MENZO was here!");
             XsltTransformer toCMD = Saxon.buildTransformer(this.getClass().getResource("/CMD/json2cmdi.xsl")).load();
 
             toCMD.setSource(jsonXML.asSource());
