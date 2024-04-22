@@ -34,6 +34,18 @@
             </cmd:Header>
             <cmd:Resources>
                 <cmd:ResourceProxyList>
+                    <cmd:ResourceProxy id="lp">
+                        <cmd:ResourceType mimetype="text/html">LandingPage</cmd:ResourceType>
+                        <cmd:ResourceRef>
+                            <xsl:variable name="base" select="js:system-property('dataverse.siteUrl')"/>
+                            <xsl:value-of select="$base"/>
+                            <xsl:if test="not(ends-with($base,'/'))">
+                                <xsl:text>/</xsl:text>
+                            </xsl:if>
+                            <xsl:text>dataset.xhtml?persistentId=</xsl:text>
+                            <xsl:value-of select="replace(/js:map/js:string[@key='persistentUrl'],'https://doi.org/','doi:')"/>
+                        </cmd:ResourceRef>
+                    </cmd:ResourceProxy>
                     <xsl:for-each select="/js:map/js:map/js:array[@key='files']/js:map">
                         <cmd:ResourceProxy id="r{position()}">
                             <cmd:ResourceType mimetype="{.//js:string[@key='contentType']}">Resource</cmd:ResourceType>
@@ -46,8 +58,7 @@
                                         <xsl:text expand-text="yes">{.//js:string[@key='storageIdentifier']}/{.//js:string[@key='filename']}</xsl:text>
                                     </xsl:otherwise>
                                 </xsl:choose></cmd:ResourceRef>
-                        </cmd:ResourceProxy>
-                        
+                        </cmd:ResourceProxy>                        
                     </xsl:for-each>
                 </cmd:ResourceProxyList>
                 <cmd:JournalFileProxyList/>
