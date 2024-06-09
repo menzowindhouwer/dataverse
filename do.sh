@@ -27,3 +27,7 @@ echo "READY!" && \
 tput bel
 
 cd $_PWD
+
+# upload new TSV
+#  curl http://localhost:8084/api/admin/datasetfield/load -H "Content-type: text/tab-separated-values" -X POST --upload-file OralHistoryInterviewDANS.tsv
+# enable it in the General Information of the Dataverse
