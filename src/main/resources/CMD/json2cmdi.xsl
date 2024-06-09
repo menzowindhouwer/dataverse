@@ -10,7 +10,8 @@
     <xsl:template match="text()"/>
     
     <xsl:variable name="profs" as="node()*">
-        <prof block="citation" root="citationProfile" id="clarin.eu:cr1:p_1639731773881"/>
+        <!--<prof block="citation" root="citationProfile" id="clarin.eu:cr1:p_1639731773881"/>-->
+        <xsl:sequence select="document(environment-variable('DV_CMDI_CONF'))//prof"/>
     </xsl:variable>
     
     <xsl:template match="js:map[@key='metadataBlocks']">
