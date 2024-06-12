@@ -52,12 +52,12 @@ public class CMDExporter implements Exporter {
         try {
             jsonXML = Saxon.parseJson(json.toString());
         } catch (SaxonApiException e) {
-            throw new ExportException("JSON to XML failed!", e);
+            throw new ExportException("JSON to CMD failed!", e);
         }
         try {
-            logger.info("MENZO was here!");
-            logger.warning("MENZO was here!");
-            logger.severe("MENZO was here!");
+            // logger.info("MENZO was here!");
+            // logger.warning("MENZO was here!");
+            // logger.severe("MENZO was here!");
             XsltTransformer toCMD = Saxon.buildTransformer(this.getClass().getResource("/CMD/json2cmdi.xsl")).load();
 
             toCMD.setSource(jsonXML.asSource());
